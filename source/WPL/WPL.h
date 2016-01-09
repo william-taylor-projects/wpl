@@ -1,26 +1,26 @@
 
 /**
- * 
+ *
  * Copyright (c) 2014 : William Taylor : wi11berto@yahoo.co.k
- *  
- * This software is provided 'as-is', without any 
- * express or implied warranty. In no event will 
- * the authors be held liable for any damages 
+ *
+ * This software is provided 'as-is', without any
+ * express or implied warranty. In no event will
+ * the authors be held liable for any damages
  * arising from the use of this software.
- * 
- * Permission is granted to anyone to use this software for any purpose, 
- * including commercial applications, and to alter it and redistribute 
+ *
+ * Permission is granted to anyone to use this software for any purpose,
+ * including commercial applications, and to alter it and redistribute
  * it freely, subject to the following restrictions:
- * 
- * 1. The origin of this software must not be misrepresented; 
- *    you must not claim that you wrote the original software. 
- *    If you use this software in a product, an acknowledgment 
- *    in the product documentation would be appreciated but 
+ *
+ * 1. The origin of this software must not be misrepresented;
+ *    you must not claim that you wrote the original software.
+ *    If you use this software in a product, an acknowledgment
+ *    in the product documentation would be appreciated but
  *    is not required.
- * 
- * 2. Altered source versions must be plainly marked as such, 
+ *
+ * 2. Altered source versions must be plainly marked as such,
  *    and must not be misrepresented as being the original software.
- *  
+ *
  * 3. This notice may not be removed or altered from any source distribution.
  */
 
@@ -31,9 +31,9 @@
 #ifdef WIN32
 	// DLL Export import statement which is found in every dynamic library
 	#ifdef WPL_API_EXPORT
-		#define WPL_API __declspec(dllexport) 
+		#define WPL_API __declspec(dllexport)
 	#else
-		#define WPL_API __declspec(dllimport) 
+		#define WPL_API __declspec(dllimport)
 	#endif
 
 /** Required Windows librarys */
@@ -68,11 +68,11 @@ struct WPL_Video {
 	/** The filter being user for the video renderer */
 	IBaseFilter * evrBaseFilter;
 	/** The current state of the video */
-	WPL_Video_State playbackState;	
+	WPL_Video_State playbackState;
 	/** The play it was loaded from */
 	std::wstring filename;
 	/** A handle to the active window */
-	HWND wndHwnd; 
+	HWND wndHwnd;
 	/** not used yet */
 	BOOL show;
 };
@@ -108,5 +108,6 @@ WPL_API void WPL_ShowVideo(WPL_Video* video);
 /** This function will return the error as a string which you can print */
 WPL_API std::string WPL_GetError(WPL_Video* video);
 
-	#endif
+#endif
+
 #endif

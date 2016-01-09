@@ -1,25 +1,25 @@
 /**
- * 
+ *
  * Copyright (c) 2014 : William Taylor : wi11berto@yahoo.co.k
- *  
- * This software is provided 'as-is', without any 
- * express or implied warranty. In no event will 
- * the authors be held liable for any damages 
+ *
+ * This software is provided 'as-is', without any
+ * express or implied warranty. In no event will
+ * the authors be held liable for any damages
  * arising from the use of this software.
- * 
- * Permission is granted to anyone to use this software for any purpose, 
- * including commercial applications, and to alter it and redistribute 
+ *
+ * Permission is granted to anyone to use this software for any purpose,
+ * including commercial applications, and to alter it and redistribute
  * it freely, subject to the following restrictions:
- * 
- * 1. The origin of this software must not be misrepresented; 
- *    you must not claim that you wrote the original software. 
- *    If you use this software in a product, an acknowledgment 
- *    in the product documentation would be appreciated but 
+ *
+ * 1. The origin of this software must not be misrepresented;
+ *    you must not claim that you wrote the original software.
+ *    If you use this software in a product, an acknowledgment
+ *    in the product documentation would be appreciated but
  *    is not required.
- * 
- * 2. Altered source versions must be plainly marked as such, 
+ *
+ * 2. Altered source versions must be plainly marked as such,
  *    and must not be misrepresented as being the original software.
- *  
+ *
  * 3. This notice may not be removed or altered from any source distribution.
  */
 
@@ -43,16 +43,16 @@ WPL_Version WPL_GetVersion()
 	v.versionString = std::to_string(MAJOR_VERSION) + "." + std::to_string(MINOR_VERSION);
 	v.majorVersion = MAJOR_VERSION;
 	v.minorVersion = MINOR_VERSION;
-	
+
 	return v;
 }
 
-void InitializeEVR(IBaseFilter * pEVR, HWND hwnd, IMFVideoDisplayControl ** ppDisplayControl) 
-{ 
+void InitializeEVR(IBaseFilter * pEVR, HWND hwnd, IMFVideoDisplayControl ** ppDisplayControl)
+{
 	IMFVideoDisplayControl * Display = NULL;
 	IMFGetService * pGS = NULL;
 
-    pEVR->QueryInterface(IID_PPV_ARGS(&pGS)); 
+    pEVR->QueryInterface(IID_PPV_ARGS(&pGS));
 	pGS->GetService(MR_VIDEO_RENDER_SERVICE, IID_PPV_ARGS(&Display));
 
     Display->SetVideoWindow(hwnd);
@@ -70,7 +70,7 @@ void InitializeEVR(IBaseFilter * pEVR, HWND hwnd, IMFVideoDisplayControl ** ppDi
 	{
 		Display->Release();
 	}
-} 
+}
 
 HRESULT RemoveUnconnectedRenderer(IGraphBuilder *pGraph, IBaseFilter *pRenderer)
 {
@@ -92,7 +92,7 @@ HRESULT IsPinConnected(IPin *pPin, BOOL *pResult)
 {
     IPin *pTmp = NULL;
     HRESULT hr = pPin->ConnectedTo(&pTmp);
-    
+
 	if (SUCCEEDED(hr))
     {
         *pResult = TRUE;
@@ -170,7 +170,7 @@ HRESULT AddFilterByCLSID(IGraphBuilder *pGraph, REFGUID clsid, IBaseFilter **ppF
 {
     IBaseFilter * pFilter = NULL;
 	*ppF = NULL;
-    
+
     HRESULT hr = CoCreateInstance(clsid, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pFilter));
 
     hr = pGraph->AddFilter(pFilter, wszName);
@@ -196,17 +196,17 @@ WPL_Video * WPL_OpenVideo(std::string filename)
 		IPin * Pin				    = NULL;
 
 		int slength = (int)filename.length() + 1;
-		
-		int Length = MultiByteToWideChar(CP_ACP, 0, filename.c_str(), slength, 0, 0); 
-		
+
+		int Length = MultiByteToWideChar(CP_ACP, 0, filename.c_str(), slength, 0, 0);
+
 		wchar_t * wideBuffer = new wchar_t[Length];
-		
+
 		MultiByteToWideChar(CP_ACP, 0, filename.c_str(), slength, wideBuffer, Length);
 
 		video->playbackState = STATE_STOPPED;
 		video->filename = std::wstring(wideBuffer);
 		video->wndHwnd = GetActiveWindow();
-		
+
 		CoCreateInstance(CLSID_FilterGraph, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&video->graphBuilder));
 
 		video->graphBuilder->QueryInterface(IID_IMediaControl, (void**)&video->mediaControl);
@@ -229,12 +229,12 @@ WPL_Video * WPL_OpenVideo(std::string filename)
 		Source->EnumPins(&Enum);
 
 		while(S_OK == Enum->Next(1, &Pin, NULL))
-		{           
+		{
 			HRESULT Result = Graph2->RenderEx(Pin, AM_RENDEREX_RENDERTOEXISTINGRENDERERS, NULL);
 
 			Pin->Release();
-       
-			if(SUCCEEDED(Result)) 
+
+			if(SUCCEEDED(Result))
 			{
 				RenderedAnyPin = TRUE;
 			}
@@ -250,7 +250,7 @@ WPL_Video * WPL_OpenVideo(std::string filename)
 		pEVR->Release();
 
 		delete[] wideBuffer;
-		
+
 		return video;
 	}
 	else
@@ -317,12 +317,12 @@ void WPL_PlayVideo(WPL_Video* video)
 		{
 			 video->videoDisplayControl->RepaintVideo();
 		}
-	
-		EndPaint(video->wndHwnd, &ps);	
+
+		EndPaint(video->wndHwnd, &ps);
 
 		if(video->playbackState == STATE_PAUSED || video->playbackState == STATE_STOPPED)
 		{
-			video->playbackState = STATE_RUNNING; 
+			video->playbackState = STATE_RUNNING;
 			video->mediaControl->Run();
 		}
 	}
@@ -350,7 +350,7 @@ void WPL_ShowVideo(WPL_Video * video)
 		GetClientRect(video->wndHwnd, &rc);
 		WPL_ShowVideo(video, rc);
 	}
-}
+} 
 
 void WPL_ExitVideo(WPL_Video ** video)
 {

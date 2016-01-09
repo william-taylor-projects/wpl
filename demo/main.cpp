@@ -13,12 +13,11 @@ int main(int argc, char * argv[])
 {
 	SDL_Init(SDL_INIT_VIDEO);
 	SDL_bool exit = SDL_FALSE;	
-
 	SDL_Window * window = SDL_CreateWindow("demo",
 		SDL_WINDOWPOS_CENTERED,
 		SDL_WINDOWPOS_CENTERED,
 		800, 500,
-		SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL 
+		SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL
 	);
 
 	SDL_GL_CreateContext(window);
@@ -48,11 +47,11 @@ int main(int argc, char * argv[])
 					case SDLK_RIGHT: WPL_PlayVideo(video); break;
 					case SDLK_LEFT: WPL_PauseVideo(video); break;
 					case SDLK_DOWN: WPL_StopVideo(video); break;
-				
+
 					default: break;
 				}
 			}
-		}	
+		}
 
 		WPL_ShowVideo(video);
 	}
