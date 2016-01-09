@@ -87,4 +87,4 @@ Once you have done that you can run the example or build the library yourself fo
 
 Find below some quick links to the technology used to build the application.
 
-[SDL]("https://www.libsdl.org/"), [DirectX]("https://www.microsoft.com/en-us/download/search.aspx?q=directx"), [DirectShow]("https://msdn.microsoft.com/en-us/library/windows/desktop/dd390351(v=vs.85).aspx")
+[SDL](https://www.libsdl.org/), [DirectX](https://www.microsoft.com/en-us/download/search.aspx?q=directx), [DirectShow](https://msdn.microsoft.com/en-us/library/windows/desktop/dd390351(v=vs.85).aspx)
