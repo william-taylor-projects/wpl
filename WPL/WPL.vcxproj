@@ -79,11 +79,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="playback.cpp" />
     <ClCompile Include="WPL.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="playback.h" />
     <ClInclude Include="WPL.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

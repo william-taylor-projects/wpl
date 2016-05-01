@@ -1,6 +1,7 @@
 
 #include "../WPL/WPL.h"
 #include "SDL2/SDL.h"
+#include "SDL2/SDL_syswm.h"
 #include <iostream>
 
 #pragma comment(lib, "SDL2/SDL2main.lib")
@@ -8,18 +9,23 @@
 #pragma comment(lib, "WPL.lib")
 
 using namespace std;
+using namespace wpl;
 
 int main(int argc, char * argv[])
 {
 	SDL_Init(SDL_INIT_VIDEO);
 
-	auto window = SDL_CreateWindow("Demo", 100, 100, 800, 500, SDL_WINDOW_SHOWN);
-	auto video = WPL_OpenVideo("demo.wmv");
-	auto exit = SDL_FALSE;
+	auto window = SDL_CreateWindow("Demo", 100, 100, 800, 500, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 
-	if (video == nullptr) {
-		cout << WPL_GetError(video) << endl;
-	}
+	SDL_SysWMinfo wmInfo;
+	SDL_VERSION(&wmInfo.version);
+	SDL_GetWindowWMInfo(window, &wmInfo);
+
+	VideoPlayer videoPlayer(wmInfo.info.win.window);
+	videoPlayer.openVideo(L"demo.wmv");
+	videoPlayer.play();
+
+	auto exit = SDL_FALSE;
 
 	while(!exit) {
 		SDL_Event event;
@@ -31,19 +37,18 @@ int main(int argc, char * argv[])
 
 			if(event.key.type == SDL_KEYUP) {
 				switch (event.key.keysym.sym) {
-					case SDLK_RIGHT: WPL_PlayVideo(video); break;
-					case SDLK_LEFT: WPL_PauseVideo(video); break;
-					case SDLK_DOWN: WPL_StopVideo(video); break;
+					case SDLK_RIGHT: videoPlayer.play(); break;
+					case SDLK_LEFT: videoPlayer.pause(); break;
+					case SDLK_DOWN: videoPlayer.stop(); break;
 
 					default: break;
 				}
 			}
 		}
 
-		WPL_ShowVideo(video);
+		videoPlayer.updateVideoWindow();
+		videoPlayer.repaint();
 	}
-
-	WPL_ExitVideo(&video);
 
 	SDL_DestroyWindow(window);
 	SDL_Quit();

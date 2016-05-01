@@ -10,15 +10,9 @@
     <ClCompile Include="WPL.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="playback.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="WPL.h">
-      <Filter>Source</Filter>
-    </ClInclude>
-    <ClInclude Include="playback.h">
       <Filter>Source</Filter>
     </ClInclude>
   </ItemGroup>
