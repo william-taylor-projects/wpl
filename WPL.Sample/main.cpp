@@ -2,7 +2,6 @@
 #include "../WPL/WPL.h"
 #include "SDL2/SDL.h"
 #include "SDL2/SDL_syswm.h"
-#include <iostream>
 
 #pragma comment(lib, "SDL2/SDL2main.lib")
 #pragma comment(lib, "SDL2/SDL2.lib")
@@ -13,9 +12,11 @@ using namespace wpl;
 
 int main(int argc, char * argv[])
 {
-	SDL_Init(SDL_INIT_VIDEO);
+	Uint32 flags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
 
-	auto window = SDL_CreateWindow("Demo", 100, 100, 800, 500, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+	SDL_Init(SDL_INIT_VIDEO);
+	SDL_Window * window = SDL_CreateWindow("Playback Demo", 100, 100, 800, 500, flags);
+	SDL_bool exit = SDL_FALSE;
 
 	SDL_SysWMinfo wmInfo;
 	SDL_VERSION(&wmInfo.version);
@@ -24,8 +25,6 @@ int main(int argc, char * argv[])
 	VideoPlayer videoPlayer(wmInfo.info.win.window);
 	videoPlayer.openVideo(L"demo.wmv");
 	videoPlayer.play();
-
-	auto exit = SDL_FALSE;
 
 	while(!exit) {
 		SDL_Event event;
@@ -52,5 +51,5 @@ int main(int argc, char * argv[])
 
 	SDL_DestroyWindow(window);
 	SDL_Quit();
-	return(0);
+	return 0;
 }
