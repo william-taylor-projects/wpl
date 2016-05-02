@@ -1,39 +1,42 @@
 # Windows Playback Library
 
-WPL is a simple and small C++ library to play back video files inside a normal Win32 window on the Windows operating system from Windows 7 and up.
+WPL is a C++ library to playback video files inside a normal Window on the Win32 operating system.
 
 ![alt tag](http://williamsamtaylor.co.uk/images/projects/wpl.png)
 
 ## Overview
 
-The library is based on DirectShow and replaces a lot of boiler plate code with just a few simple functions. Below you can view a simple example where SDL is used for providing the basic Win32 window.
-
-All function prefixed with WPL are functions that below to this library. Likewise any function starting with SDL is part of the SDL library.
+The library is a simple wrapper on top of DirectShow and replaces a lot of boiler plate code with just a few simple classes. Below you can view a simple example where SDL2 is used for providing the basic Win32 window.
 
 ## Example
 
 ```c++
-#include <iostream>
-#include <SDL.h>
-#include "WPL.h"
+#include "../WPL/WPL.h"
+#include "SDL2/SDL.h"
+#include "SDL2/SDL_syswm.h"
 
-#pragma comment(lib, "SDL2main.lib")
-#pragma comment(lib, "SDL2.lib")
+#pragma comment(lib, "SDL2/SDL2main.lib")
+#pragma comment(lib, "SDL2/SDL2.lib")
 #pragma comment(lib, "WPL.lib")
 
-int main(int argc, char * argv[]) {
+using namespace std;
+using namespace wpl;
+
+int main(int argc, char * argv[])
+{
+	Uint32 flags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
+
 	SDL_Init(SDL_INIT_VIDEO);
+	SDL_Window * window = SDL_CreateWindow("Playback Demo", 100, 100, 800, 500, flags);
 	SDL_bool exit = SDL_FALSE;
-	SDL_Window * window = SDL_CreateWindow("demo",
-		SDL_WINDOWPOS_CENTERED,	SDL_WINDOWPOS_CENTERED,
-		800, 500, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL
-	);
 
-	SDL_GL_CreateContext(window);
+	SDL_SysWMinfo wmInfo;
+	SDL_VERSION(&wmInfo.version);
+	SDL_GetWindowWMInfo(window, &wmInfo);
 
-	WPL_Video * video = WPL_OpenVideo("demo.wmv");
-	if (video == NULL)
-		std::cout << WPL_GetError(video) << endl;
+	VideoPlayer videoPlayer(wmInfo.info.win.window);
+	videoPlayer.openVideo(L"demo.wmv");
+	videoPlayer.play();
 
 	while(!exit) {
 		SDL_Event event;
@@ -41,25 +44,28 @@ int main(int argc, char * argv[]) {
 			if(event.type == SDL_QUIT) {
 				exit = SDL_TRUE;
 				break;
-			} else if(event.key.type == SDL_KEYUP)	{
+			}
+
+			if(event.key.type == SDL_KEYUP) {
 				switch (event.key.keysym.sym) {
-					case SDLK_RIGHT: WPL_PlayVideo(video); break;
-					case SDLK_LEFT: WPL_PauseVideo(video); break;
-					case SDLK_DOWN: WPL_StopVideo(video); break;
+					case SDLK_RIGHT: videoPlayer.play(); break;
+					case SDLK_LEFT: videoPlayer.pause(); break;
+					case SDLK_DOWN: videoPlayer.stop(); break;
 
 					default: break;
 				}
 			}
 		}
 
-		WPL_ShowVideo(video);
+		videoPlayer.updateVideoWindow();
+		videoPlayer.repaint();
 	}
 
-	WPL_ExitVideo(&video);
 	SDL_DestroyWindow(window);
 	SDL_Quit();
-	return(0);
+	return 0;
 }
+
 ```
 
 ## Installation
@@ -68,7 +74,7 @@ If you would like to build the library you can download the project with a simpl
 
 ```git clone https://github.com/WilliamTaylor/WPL```
 
-Once you have done that you can run the example or build the library yourself for your app.  Remember it’s only for Windows 7 and above.
+Once you have done that you can run the example or build the library yourself from inside Visual Studio.
 
 ## Features
 
@@ -78,7 +84,6 @@ Once you have done that you can run the example or build the library yourself fo
 
 ## Future Features
 
-* Bug fixes regarding to the rendering of videos.
 * Adjust the playback speed.
 * Disable and control Audio.
 * Set drawing region.
