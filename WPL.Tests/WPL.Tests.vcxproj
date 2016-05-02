@@ -75,6 +75,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
+    <IncludePath>$(OutDir);$(IncludePath)</IncludePath>
+    <LibraryPath>$(OutDir);$(IncludePath);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
@@ -157,6 +159,9 @@
   <ItemGroup>
     <ClCompile Include="ErrorTests.cpp" />
     <ClCompile Include="StateTests.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Tests.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

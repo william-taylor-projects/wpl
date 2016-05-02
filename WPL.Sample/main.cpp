@@ -23,7 +23,7 @@ int main(int argc, char * argv[])
 	SDL_GetWindowWMInfo(window, &wmInfo);
 
 	VideoPlayer videoPlayer(wmInfo.info.win.window);
-	videoPlayer.openVideo(L"demo.wmv");
+	videoPlayer.openVideo("demo.wmv");
 	videoPlayer.play();
 
 	while(!exit) {
@@ -40,16 +40,22 @@ int main(int argc, char * argv[])
 					case SDLK_LEFT: videoPlayer.pause(); break;
 					case SDLK_DOWN: videoPlayer.stop(); break;
 
-					default: break;
+					default:
+						break;
 				}
 			}
 		}
 
 		videoPlayer.updateVideoWindow();
 		videoPlayer.repaint();
+
+		if(videoPlayer.hasFinished())
+		{
+			SDL_ShowSimpleMessageBox(NULL, "Done", "Video has finished", window);
+		}
 	}
 
 	SDL_DestroyWindow(window);
 	SDL_Quit();
-	return 0;
+	return 0 ;
 }

@@ -95,6 +95,15 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>xcopy /Y "$(SolutionDir)WPL.Sample\demo.wmv" "$(OutDir)"</Command>
+    </PreBuildEvent>
+    <PreLinkEvent>
+      <Command>xcopy /Y "$(SolutionDir)WPL.Sample\demo.wmv" "$(OutDir)"</Command>
+    </PreLinkEvent>
+    <PostBuildEvent>
+      <Command>xcopy /Y "$(SolutionDir)WPL.Sample\demo.wmv" "$(OutDir)"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>

@@ -10,6 +10,7 @@
 
 #include <windows.h>
 #include <dshow.h>
+#include <string>
 #include <Evr.h>
 
 #pragma comment(lib, "strmiids.lib")
@@ -28,11 +29,11 @@ namespace wpl {
 	{
 	public:
 		virtual ~VideoRenderer() {};
-		virtual BOOL hasVideo() const = 0;
-		virtual HRESULT addToGraph(IGraphBuilder *pGraph, HWND hwnd) = 0;
-		virtual HRESULT finalizeGraph(IGraphBuilder *pGraph) = 0;
-		virtual HRESULT updateVideoWindow(HWND hwnd, const LPRECT prc) = 0;
-		virtual HRESULT repaint() = 0;
+		virtual bool addToGraph(IGraphBuilder *pGraph, HWND hwnd) = 0;
+		virtual bool finalizeGraph(IGraphBuilder *pGraph) = 0;
+		virtual bool updateVideoWindow(HWND hwnd, const LPRECT prc) = 0;
+		virtual bool repaint() = 0;
+		virtual bool hasVideo() const = 0;
 	};
 
 	class EVR : public VideoRenderer
@@ -43,19 +44,19 @@ namespace wpl {
 		EVR();
 		~EVR();
 
-		HRESULT addToGraph(IGraphBuilder *pGraph, HWND hwnd) override;
-		HRESULT finalizeGraph(IGraphBuilder *pGraph) override;
-		HRESULT updateVideoWindow(HWND hwnd, const LPRECT prc) override;
-		HRESULT repaint() override;
-
-		BOOL hasVideo() const override;
+		bool addToGraph(IGraphBuilder *pGraph, HWND hwnd) override;
+		bool finalizeGraph(IGraphBuilder *pGraph) override;
+		bool updateVideoWindow(HWND hwnd, const LPRECT prc) override;
+		bool repaint() override;
+		bool hasVideo() const override;
 	};
 
 
 	class WPL_API VideoPlayer {
-		IGraphBuilder * m_pGraph;
-		IMediaControl * m_pControl;
-		IMediaEventEx * m_pEvent;
+		IGraphBuilder * graphBuilder;
+		IMediaControl * mediaControl;
+		IMediaEventEx * mediaEvents;
+		IMediaSeeking * mediaSeeking;
 		VideoRenderer * videoRenderer;
 		PlaybackState state;
 		HWND windowHandle;
@@ -65,18 +66,19 @@ namespace wpl {
 
 		PlaybackState playbackState() const;
 
-		HRESULT openVideo(PCWSTR pszFileName);
-		HRESULT updateVideoWindow() const;
-		HRESULT repaint() const;
-		HRESULT pause();
-		HRESULT play();
-		HRESULT stop();
+		bool openVideo(const std::string& filename);
+		bool updateVideoWindow() const;
+		bool repaint() const;
+		bool pause();
+		bool play();
+		bool stop();
 
-		BOOL hasVideo() const;
+		bool hasFinished() const;
+		bool hasVideo() const;
 	private:
-		HRESULT setupGraph();
-		HRESULT createVideoRenderer();
-		HRESULT renderStreams(IBaseFilter *pSource);
+		bool setupGraph();
+		bool createVideoRenderer();
+		bool renderStreams(IBaseFilter *pSource);
 
 		void releaseGraph();
 	};

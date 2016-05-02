@@ -11,13 +11,10 @@ The library is a simple wrapper on top of DirectShow and replaces a lot of boile
 ## Example
 
 ```c++
-#include "../WPL/WPL.h"
+
 #include "SDL2/SDL.h"
 #include "SDL2/SDL_syswm.h"
-
-#pragma comment(lib, "SDL2/SDL2main.lib")
-#pragma comment(lib, "SDL2/SDL2.lib")
-#pragma comment(lib, "WPL.lib")
+#include "../WPL/WPL.h"
 
 using namespace std;
 using namespace wpl;
