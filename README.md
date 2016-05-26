@@ -2,10 +2,6 @@
 
 WPL is a C++ library to playback video files inside a normal Window on the Win32 operating system.
 
-![alt tag](http://williamsamtaylor.co.uk/images/projects/wpl.png)
-
-## Demo
-
 ![alt tag](http://williamsamtaylor.co.uk/github-images/wpl-animation.gif)
 
 ## Overview
