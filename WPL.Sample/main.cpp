@@ -15,7 +15,7 @@ int main(int argc, char * argv[])
 	Uint32 flags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
 
 	SDL_Init(SDL_INIT_VIDEO);
-	SDL_Window * window = SDL_CreateWindow("Playback Demo", 100, 100, 800, 500, flags);
+	SDL_Window * window = SDL_CreateWindow("Playback Demo", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 500, flags);
 	SDL_bool exit = SDL_FALSE;
 
 	SDL_SysWMinfo wmInfo;

@@ -4,6 +4,10 @@ WPL is a C++ library to playback video files inside a normal Window on the Win32
 
 ![alt tag](http://williamsamtaylor.co.uk/images/projects/wpl.png)
 
+## Demo
+
+![alt tag](http://williamsamtaylor.co.uk/github-images/wpl-animation.gif)
+
 ## Overview
 
 The library is a simple wrapper on top of DirectShow and replaces a lot of boiler plate code with just a few simple classes.
@@ -49,7 +53,7 @@ Once you have done that you can run the example or build the library yourself fr
 ## Roadmap
 
 * Adjust the playback speed.
-* Disable and control Audio.
+* Disable and control audio.
 * Set drawing region.
 
 ## Links
