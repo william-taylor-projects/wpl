@@ -2,11 +2,11 @@
 #pragma once
 
 #ifdef WIN32
-	#ifdef WPL_API_EXPORT
-		#define WPL_API __declspec(dllexport)
-	#else
-		#define WPL_API __declspec(dllimport)
-	#endif
+    #ifdef WPL_API_EXPORT
+        #define WPL_API __declspec(dllexport)
+    #else
+        #define WPL_API __declspec(dllimport)
+    #endif
 
 #include <windows.h>
 #include <dshow.h>
@@ -16,72 +16,72 @@
 #pragma comment(lib, "strmiids.lib")
 
 namespace wpl {
-	using uint = unsigned int;
+    using uint = unsigned int;
 
-	struct Version {
-		uint majorVersion;
-		uint minorVersion;
-	};
+    struct Version {
+        uint majorVersion;
+        uint minorVersion;
+    };
 
-	enum class PlaybackState { NoVideo, Playing, Paused, Stopped };
+    enum class PlaybackState { NoVideo, Playing, Paused, Stopped };
 
-	class VideoRenderer 
-	{
-	public:
-		virtual ~VideoRenderer() {};
-		virtual bool addToGraph(IGraphBuilder *pGraph, HWND hwnd) = 0;
-		virtual bool finalizeGraph(IGraphBuilder *pGraph) = 0;
-		virtual bool updateVideoWindow(HWND hwnd, const LPRECT prc) = 0;
-		virtual bool repaint() = 0;
-		virtual bool hasVideo() const = 0;
-	};
+    class VideoRenderer 
+    {
+    public:
+        virtual ~VideoRenderer() {};
+        virtual bool addToGraph(IGraphBuilder *pGraph, HWND hwnd) = 0;
+        virtual bool finalizeGraph(IGraphBuilder *pGraph) = 0;
+        virtual bool updateVideoWindow(HWND hwnd, const LPRECT prc) = 0;
+        virtual bool repaint() = 0;
+        virtual bool hasVideo() const = 0;
+    };
 
-	class EVR : public VideoRenderer
-	{
-		IMFVideoDisplayControl * videoDisplay;
-		IBaseFilter * evr;
-	public:
-		EVR();
-		~EVR();
+    class EVR : public VideoRenderer
+    {
+        IMFVideoDisplayControl * videoDisplay;
+        IBaseFilter * evr;
+    public:
+        EVR();
+        ~EVR();
 
-		bool addToGraph(IGraphBuilder *pGraph, HWND hwnd) override;
-		bool finalizeGraph(IGraphBuilder *pGraph) override;
-		bool updateVideoWindow(HWND hwnd, const LPRECT prc) override;
-		bool repaint() override;
-		bool hasVideo() const override;
-	};
+        bool addToGraph(IGraphBuilder *pGraph, HWND hwnd) override;
+        bool finalizeGraph(IGraphBuilder *pGraph) override;
+        bool updateVideoWindow(HWND hwnd, const LPRECT prc) override;
+        bool repaint() override;
+        bool hasVideo() const override;
+    };
 
 
-	class WPL_API VideoPlayer {
-		IGraphBuilder * graphBuilder;
-		IMediaControl * mediaControl;
-		IMediaEventEx * mediaEvents;
-		IMediaSeeking * mediaSeeking;
-		VideoRenderer * videoRenderer;
-		PlaybackState state;
-		HWND windowHandle;
-	public:
-		explicit VideoPlayer(HWND hwnd = nullptr);
-		~VideoPlayer();
+    class WPL_API VideoPlayer {
+        IGraphBuilder * graphBuilder;
+        IMediaControl * mediaControl;
+        IMediaEventEx * mediaEvents;
+        IMediaSeeking * mediaSeeking;
+        VideoRenderer * videoRenderer;
+        PlaybackState state;
+        HWND windowHandle;
+    public:
+        explicit VideoPlayer(HWND hwnd = nullptr);
+        ~VideoPlayer();
 
-		PlaybackState playbackState() const;
+        PlaybackState playbackState() const;
 
-		bool openVideo(const std::string& filename);
-		bool updateVideoWindow() const;
-		bool repaint() const;
-		bool pause();
-		bool play();
-		bool stop();
+        bool openVideo(const std::string& filename);
+        bool updateVideoWindow() const;
+        bool repaint() const;
+        bool pause();
+        bool play();
+        bool stop();
 
-		bool hasFinished() const;
-		bool hasVideo() const;
-	private:
-		bool setupGraph();
-		bool createVideoRenderer();
-		bool renderStreams(IBaseFilter *pSource);
+        bool hasFinished() const;
+        bool hasVideo() const;
+    private:
+        bool setupGraph();
+        bool createVideoRenderer();
+        bool renderStreams(IBaseFilter *pSource);
 
-		void releaseGraph();
-	};
+        void releaseGraph();
+    };
 }
 
 #endif

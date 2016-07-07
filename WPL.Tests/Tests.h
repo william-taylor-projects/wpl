@@ -17,9 +17,9 @@
 template <typename... ParamTypes>
 void setTimeout(int milliseconds, std::function<void()> func)
 {
-	std::async(std::launch::async, [=]()
-	{
-		Sleep(milliseconds);
-		func();
-	});
+    std::async(std::launch::async, [=]()
+    {
+        Sleep(milliseconds);
+        func();
+    });
 };
