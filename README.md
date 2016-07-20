@@ -35,7 +35,7 @@ videoPlayer.hasVideo();
 
 If you would like to build the library you can download the project with a simple clone.
 
-```git clone https://github.com/WilliamTaylor/WPL```
+```git clone https://github.com/william-taylor/WPL```
 
 Once you have done that you can run the example or build the library yourself from inside Visual Studio.
 
