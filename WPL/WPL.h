@@ -16,11 +16,9 @@
 #pragma comment(lib, "strmiids.lib")
 
 namespace wpl {
-    using uint = unsigned int;
-
     struct Version {
-        uint majorVersion;
-        uint minorVersion;
+        unsigned int majorVersion;
+        unsigned int minorVersion;
     };
 
     enum class PlaybackState { NoVideo, Playing, Paused, Stopped };
@@ -29,11 +27,11 @@ namespace wpl {
     {
     public:
         virtual ~VideoRenderer() {};
-        virtual bool addToGraph(IGraphBuilder *pGraph, HWND hwnd) = 0;
-        virtual bool finalizeGraph(IGraphBuilder *pGraph) = 0;
+        virtual bool addToGraph(IGraphBuilder * graph, HWND hwnd) = 0;
+        virtual bool finalizeGraph(IGraphBuilder * graph) = 0;
         virtual bool updateVideoWindow(HWND hwnd, const LPRECT prc) = 0;
-        virtual bool repaint() = 0;
         virtual bool hasVideo() const = 0;
+        virtual bool repaint() = 0;
     };
 
     class EVR : public VideoRenderer
@@ -44,11 +42,11 @@ namespace wpl {
         EVR();
         ~EVR();
 
-        bool addToGraph(IGraphBuilder *pGraph, HWND hwnd) override;
-        bool finalizeGraph(IGraphBuilder *pGraph) override;
+        bool addToGraph(IGraphBuilder * graph, HWND hwnd) override;
+        bool finalizeGraph(IGraphBuilder * graph) override;
         bool updateVideoWindow(HWND hwnd, const LPRECT prc) override;
-        bool repaint() override;
         bool hasVideo() const override;
+        bool repaint() override;
     };
 
 
