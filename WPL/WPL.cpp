@@ -5,37 +5,40 @@
 using namespace wpl;
 
 #define MAJOR_VERSION 2
-#define MINOR_VERSION 0
+#define MINOR_VERSION 1
 
-template<typename T> void safeRelease(T ** comPtr) {
+template<typename T> void safeRelease(T ** comPtr) 
+{
     if (comPtr != nullptr && *comPtr) {
         (*comPtr)->Release();
         (*comPtr) = nullptr;
     }
 }
 
-template<typename T> void safeDelete(T ** savePointer) {
+template<typename T> void safeDelete(T ** savePointer) 
+{
     if(savePointer != nullptr && savePointer) {
         delete (*savePointer);
         (*savePointer) = nullptr;
     }
 }
 
-template<typename T> bool fileExists(T filename) {
+template<typename T> bool fileExists(T filename) 
+{
     return std::ifstream(filename).good();
 }
 
 // Helper functions for graphs and filters
-bool AddFilterByCLSID(IGraphBuilder *pGraph, REFGUID clsid, IBaseFilter **ppF, LPCWSTR wszName);
-bool InitializeEVR(IBaseFilter *pEVR, HWND hwnd, IMFVideoDisplayControl ** ppWc);
-bool FindConnectedPin(IBaseFilter *pFilter, PIN_DIRECTION PinDir, IPin **ppPin);
-bool RemoveUnconnectedRenderer(IGraphBuilder *pGraph, IBaseFilter *pRenderer);
+bool addFilterByCLSID(IGraphBuilder *pGraph, REFGUID clsid, IBaseFilter **ppF, LPCWSTR wszName);
+bool initialiseEvr(IBaseFilter *pEVR, HWND hwnd, IMFVideoDisplayControl ** ppWc);
+bool findConnectedPin(IBaseFilter *pFilter, PIN_DIRECTION PinDir, IPin **ppPin);
+bool removeUnconnectedRenderer(IGraphBuilder *pGraph, IBaseFilter *pRenderer);
 
-bool RemoveUnconnectedRenderer(IGraphBuilder * graphBuilder, IBaseFilter * baseFilter, bool * removed)
+bool removeUnconnectedRenderer(IGraphBuilder * graphBuilder, IBaseFilter * baseFilter, bool * removed)
 {
     IPin * pinPointer = nullptr;
     (*removed) = false;
-    auto result = FindConnectedPin(baseFilter, PINDIR_INPUT, &pinPointer);
+    auto result = findConnectedPin(baseFilter, PINDIR_INPUT, &pinPointer);
     safeRelease(&pinPointer);
     
     if (FAILED(result)) {
@@ -46,7 +49,7 @@ bool RemoveUnconnectedRenderer(IGraphBuilder * graphBuilder, IBaseFilter * baseF
     return result;
 }
 
-bool IsPinConnected(IPin * pinPointer, bool * resultPointer)
+bool isPinConnected(IPin * pinPointer, bool * resultPointer)
 {
     IPin * tempPinPointer = nullptr;
     auto hr = pinPointer->ConnectedTo(&tempPinPointer);
@@ -62,7 +65,7 @@ bool IsPinConnected(IPin * pinPointer, bool * resultPointer)
     return SUCCEEDED(hr);
 }
 
-bool IsPinDirection(IPin * pinPointer, PIN_DIRECTION dir, BOOL * result)
+bool isPinDirection(IPin * pinPointer, PIN_DIRECTION dir, BOOL * result)
 {
     PIN_DIRECTION pinDirection;
     auto hr = pinPointer->QueryDirection(&pinDirection);
@@ -75,7 +78,7 @@ bool IsPinDirection(IPin * pinPointer, PIN_DIRECTION dir, BOOL * result)
     return SUCCEEDED(hr);
 }
 
-bool FindConnectedPin(IBaseFilter *pFilter, PIN_DIRECTION PinDir, IPin **ppPin)
+bool findConnectedPin(IBaseFilter *pFilter, PIN_DIRECTION PinDir, IPin **ppPin)
 {
     *ppPin = nullptr;
     IEnumPins * pEnum = nullptr;
@@ -93,10 +96,10 @@ bool FindConnectedPin(IBaseFilter *pFilter, PIN_DIRECTION PinDir, IPin **ppPin)
     while (S_OK == pEnum->Next(1, &pPin, nullptr))
     {
         bool bIsConnected;
-        hr = IsPinConnected(pPin, &bIsConnected);
+        hr = isPinConnected(pPin, &bIsConnected);
         if (SUCCEEDED(hr)) {
             if (bIsConnected) {
-                hr = IsPinDirection(pPin, PinDir, &bFound);
+                hr = isPinDirection(pPin, PinDir, &bFound);
             }
         }
 
@@ -122,7 +125,7 @@ bool FindConnectedPin(IBaseFilter *pFilter, PIN_DIRECTION PinDir, IPin **ppPin)
     return SUCCEEDED(hr);
 }
 
-bool AddFilterByCLSID(IGraphBuilder *pGraph, REFGUID clsid, IBaseFilter **ppF, LPCWSTR wszName)
+bool addFilterByCLSID(IGraphBuilder *pGraph, REFGUID clsid, IBaseFilter **ppF, LPCWSTR wszName)
 {
     *ppF = nullptr;
 
@@ -146,11 +149,11 @@ done:
     return SUCCEEDED(hr);
 }
 
-bool RemoveUnconnectedRenderer(IGraphBuilder *pGraph, IBaseFilter *pRenderer)
+bool removeUnconnectedRenderer(IGraphBuilder *pGraph, IBaseFilter *pRenderer)
 {
     IPin * pinPointer = nullptr;
 
-    HRESULT hr = FindConnectedPin(pRenderer, PINDIR_INPUT, &pinPointer);
+    HRESULT hr = findConnectedPin(pRenderer, PINDIR_INPUT, &pinPointer);
 
     pinPointer->Release();
 
@@ -162,7 +165,41 @@ bool RemoveUnconnectedRenderer(IGraphBuilder *pGraph, IBaseFilter *pRenderer)
     return SUCCEEDED(hr);
 }
 
-Version WPL_GetVersion()
+bool initialiseEvr(IBaseFilter *pEVR, HWND hwnd, IMFVideoDisplayControl** ppDisplayControl)
+{
+    IMFGetService *pGS = nullptr;
+    IMFVideoDisplayControl *pDisplay = nullptr;
+
+    auto hr = pEVR->QueryInterface(IID_PPV_ARGS(&pGS));
+
+    if (FAILED(hr))
+        goto done;
+
+    hr = pGS->GetService(MR_VIDEO_RENDER_SERVICE, IID_PPV_ARGS(&pDisplay));
+
+    if (FAILED(hr))
+        goto done;
+
+    hr = pDisplay->SetVideoWindow(hwnd);
+
+    if (FAILED(hr))
+        goto done;
+
+    hr = pDisplay->SetAspectRatioMode(MFVideoARMode_None);
+
+    if (FAILED(hr))
+        goto done;
+
+    *ppDisplayControl = pDisplay;
+    (*ppDisplayControl)->AddRef();
+
+done:
+    safeRelease(&pGS);
+    safeRelease(&pDisplay);
+    return SUCCEEDED(hr);
+}
+
+Version getVersion()
 {
     Version v;
     v.majorVersion = MAJOR_VERSION;
@@ -190,12 +227,12 @@ bool EVR::addToGraph(IGraphBuilder *pGraph, HWND hwnd)
 {
     IBaseFilter *pEVR = nullptr;
 
-    auto hr = AddFilterByCLSID(pGraph, CLSID_EnhancedVideoRenderer, &pEVR, L"EVR");
+    auto hr = addFilterByCLSID(pGraph, CLSID_EnhancedVideoRenderer, &pEVR, L"EVR");
 
     if (FAILED(hr))
         goto done;
 
-    InitializeEVR(pEVR, hwnd, &videoDisplay);
+    initialiseEvr(pEVR, hwnd, &videoDisplay);
 
     if (FAILED(hr))
         goto done;
@@ -215,7 +252,7 @@ bool EVR::finalizeGraph(IGraphBuilder *pGraph)
     }
 
     bool bRemoved;
-    auto hr = RemoveUnconnectedRenderer(pGraph, evr, &bRemoved);
+    auto hr = removeUnconnectedRenderer(pGraph, evr, &bRemoved);
 
     if (bRemoved) {
         safeRelease(&evr);
@@ -245,48 +282,13 @@ bool EVR::repaint()
     return SUCCEEDED(videoDisplay ? videoDisplay->RepaintVideo() : S_OK);
 }
 
-// Initialize the EVR filter. 
-bool InitializeEVR(IBaseFilter *pEVR, HWND hwnd, IMFVideoDisplayControl** ppDisplayControl)
-{
-    IMFGetService *pGS = nullptr;
-    IMFVideoDisplayControl *pDisplay = nullptr;
-
-    auto hr = pEVR->QueryInterface(IID_PPV_ARGS(&pGS));
-
-    if (FAILED(hr))
-        goto done;
-
-    hr = pGS->GetService(MR_VIDEO_RENDER_SERVICE, IID_PPV_ARGS(&pDisplay));
-    
-    if (FAILED(hr))
-        goto done;
-
-    hr = pDisplay->SetVideoWindow(hwnd);
-    
-    if (FAILED(hr))
-        goto done;
-
-    hr = pDisplay->SetAspectRatioMode(MFVideoARMode_None);
-
-    if (FAILED(hr))
-        goto done;
-
-    *ppDisplayControl = pDisplay;
-    (*ppDisplayControl)->AddRef();
-
-done:
-    safeRelease(&pGS);
-    safeRelease(&pDisplay);
-    return SUCCEEDED(hr);
-}
-
-
 VideoPlayer::VideoPlayer(HWND hwnd)
   : state(PlaybackState::NoVideo),
     windowHandle(hwnd),
     graphBuilder(nullptr),
     mediaControl(nullptr),
     mediaEvents(nullptr),
+    mediaSeeking(nullptr),
     videoRenderer(nullptr)
 {
 }
@@ -307,7 +309,7 @@ bool VideoPlayer::openVideo(const std::string& filename)
     auto hr = setupGraph();
 
     if (!hr)
-        goto done;
+        return false;
 
     auto nameLength = filename.length() + 1;
     auto widthLength = MultiByteToWideChar(CP_ACP, 0, filename.c_str(), nameLength, nullptr, 0);
@@ -341,20 +343,24 @@ bool VideoPlayer::play()
     auto hr = mediaControl->Run();
 
     if (SUCCEEDED(hr))
+    {
         state = PlaybackState::Playing;
+    }
 
     return state == PlaybackState::Playing;
 }
 
 bool VideoPlayer::pause()
 {
-    if (state != PlaybackState::Playing) {
+    if (state != PlaybackState::Playing) 
+    {
         return false;
     }
 
     auto hr = mediaControl->Pause();
     
-    if (SUCCEEDED(hr)) {
+    if (SUCCEEDED(hr)) 
+    {
         state = PlaybackState::Paused;
     }
 
@@ -363,13 +369,15 @@ bool VideoPlayer::pause()
 
 bool VideoPlayer::stop()
 {
-    if (state != PlaybackState::Playing && state != PlaybackState::Paused) {
+    if (state != PlaybackState::Playing && state != PlaybackState::Paused) 
+    {
         return false;
     }
 
     auto hr = mediaControl->Stop();
 
-    if (SUCCEEDED(hr)){
+    if (SUCCEEDED(hr))
+    {
         state = PlaybackState::Stopped;
         
         LONGLONG StopTimes = 1;
@@ -391,7 +399,8 @@ bool VideoPlayer::hasFinished() const
 {
     auto returnValue = false;
 
-    if(mediaEvents == nullptr) {
+    if(mediaEvents == nullptr) 
+    {
         return returnValue;
     }
 
@@ -403,9 +412,12 @@ bool VideoPlayer::hasFinished() const
         auto hr = mediaEvents->FreeEventParams(evCode, param1, param2);
         
         if (FAILED(hr))
+        {
             break;
+        }
 
-        if (evCode == EC_COMPLETE) {
+        if (evCode == EC_COMPLETE) 
+        {
             returnValue = true;
             break;
         }
@@ -433,7 +445,9 @@ bool VideoPlayer::setupGraph()
     auto hr = CoCreateInstance(CLSID_FilterGraph, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&graphBuilder));
 
     if (FAILED(hr))
+    {
         goto done;
+    }
 
     hr = graphBuilder->QueryInterface(IID_PPV_ARGS(&mediaControl));
 
@@ -473,16 +487,18 @@ PlaybackState VideoPlayer::playbackState() const
 bool VideoPlayer::createVideoRenderer()
 {
     auto hr = E_FAIL;
-    videoRenderer = new (std::nothrow) EVR();
+    videoRenderer = new EVR();
 
-    if (videoRenderer == nullptr) {
+    if (videoRenderer == nullptr) 
+    {
         hr = E_OUTOFMEMORY;
         return false;
     }
 
     hr = videoRenderer->addToGraph(graphBuilder, windowHandle);
     
-    if (FAILED(hr)) {
+    if (FAILED(hr)) 
+    {
         safeDelete(&videoRenderer);
     }
 
@@ -491,61 +507,70 @@ bool VideoPlayer::createVideoRenderer()
 
 bool VideoPlayer::renderStreams(IBaseFilter *pSource)
 {
-    auto bRenderedAnyPin {false};
+    IFilterGraph2 * filterGraph2 { nullptr };
+    IBaseFilter * audioRenderer { nullptr };
+    IEnumPins * enumPins { nullptr };
+    auto renderedAnyPin { false };
 
-    IFilterGraph2 * pGraph2 = nullptr;
-    IEnumPins * pEnum = nullptr;
-    IBaseFilter * pAudioRenderer = nullptr;
-    
-    auto hr = graphBuilder->QueryInterface(IID_PPV_ARGS(&pGraph2));
+    auto hr = graphBuilder->QueryInterface(IID_PPV_ARGS(&filterGraph2));
 
     if (FAILED(hr))
+    {
         goto done;
+    }
 
     hr = createVideoRenderer();
 
     if (FAILED(hr))
-        goto done;
-
-    hr = AddFilterByCLSID(graphBuilder, CLSID_DSoundRender, &pAudioRenderer, L"Audio Renderer");
-
-    if (FAILED(hr))
-        goto done;
-
-    // Enumerate the pins on the source filter.
-    hr = pSource->EnumPins(&pEnum);
-
-    if (FAILED(hr))
-        goto done;
-
-    IPin * pPin;
-    while (S_OK == pEnum->Next(1, &pPin, nullptr))
     {
-        auto hr2 = pGraph2->RenderEx(pPin, AM_RENDEREX_RENDERTOEXISTINGRENDERERS, nullptr);
+        goto done;
+    }
+
+    hr = addFilterByCLSID(graphBuilder, CLSID_DSoundRender, &audioRenderer, L"Audio Renderer");
+
+    if (FAILED(hr))
+    {
+        goto done;
+    }
+
+    hr = pSource->EnumPins(&enumPins);      // Enumerate the pins on the source filter.
+
+    if (FAILED(hr))
+    {
+        goto done;
+    }
+
+    IPin * pPin = nullptr;
+
+    while (S_OK == enumPins->Next(1, &pPin, nullptr))
+    {
+        auto hr2 = filterGraph2->RenderEx(pPin, AM_RENDEREX_RENDERTOEXISTINGRENDERERS, nullptr);
         pPin->Release();
         if (SUCCEEDED(hr2))
         {
-            bRenderedAnyPin = TRUE;
+            renderedAnyPin = TRUE;
         }
     }
 
     hr = videoRenderer->finalizeGraph(graphBuilder);
 
     if (FAILED(hr))
+    {
         goto done;
+    }
 
-    // Remove the audio renderer, if not used.
-    bool bRemoved;
-    hr = RemoveUnconnectedRenderer(graphBuilder, pAudioRenderer, &bRemoved);
+    bool removed;
+    hr = removeUnconnectedRenderer(graphBuilder, audioRenderer, &removed);
 done:
-    safeRelease(&pEnum);
-    safeRelease(&pAudioRenderer);
-    safeRelease(&pGraph2);
+    safeRelease(&enumPins);
+    safeRelease(&audioRenderer);
+    safeRelease(&filterGraph2);
 
-    if (SUCCEEDED(hr)) {
-        if (!bRenderedAnyPin) {
-            //hr = VFW_E_CANNOT_RENDER;
-            hr = -1;
+    if (SUCCEEDED(hr)) 
+    {
+        if (!renderedAnyPin) 
+        {
+            hr = -1;  //hr = VFW_E_CANNOT_RENDER;
         }
     }
 
