@@ -8,21 +8,19 @@
 #pragma comment(lib, "WPL.lib")
 
 using namespace std;
-using namespace wpl;
 
 int main(int argc, char * argv[])
 {
-    Uint32 flags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
+    const Uint32 flags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
 
     SDL_Init(SDL_INIT_VIDEO);
     SDL_Window * window = SDL_CreateWindow("Playback Demo", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 500, flags);
-    SDL_bool exit = SDL_FALSE;
-
     SDL_SysWMinfo wmInfo;
     SDL_VERSION(&wmInfo.version);
     SDL_GetWindowWMInfo(window, &wmInfo);
+    SDL_bool exit = SDL_FALSE;
 
-    VideoPlayer videoPlayer(wmInfo.info.win.window);
+    wpl::VideoPlayer videoPlayer(wmInfo.info.win.window);
     videoPlayer.openVideo("demo.wmv");
     videoPlayer.play();
 
@@ -57,5 +55,5 @@ int main(int argc, char * argv[])
 
     SDL_DestroyWindow(window);
     SDL_Quit();
-    return 0 ;
+    return 0;
 }

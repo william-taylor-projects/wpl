@@ -8,7 +8,8 @@ using namespace wpl;
 #define MAJOR_VERSION 2
 #define MINOR_VERSION 1
 
-template<typename T> void safeRelease(T ** comPtr) 
+template<typename T> 
+void safeRelease(T ** comPtr) 
 {
     if (comPtr != nullptr && *comPtr) 
     {
@@ -17,7 +18,8 @@ template<typename T> void safeRelease(T ** comPtr)
     }
 }
 
-template<typename T> void safeDelete(T ** savePointer) 
+template<typename T> 
+void safeDelete(T ** savePointer) 
 {
     if(savePointer != nullptr && savePointer) 
     {
@@ -26,9 +28,22 @@ template<typename T> void safeDelete(T ** savePointer)
     }
 }
 
-template<typename T> bool fileExists(T filename) 
+template<typename T>
+bool fileExists(T filename) 
 {
     return std::ifstream(filename).good();
+}
+
+bool async(std::function<bool()> start, std::function<void()> onfail)
+{
+    auto successful = start();
+
+    if (successful == false)
+    {
+        onfail();
+    }
+
+    return successful;
 }
 
 bool addFilterByCLSID(IGraphBuilder * graph, REFGUID clsid, IBaseFilter ** filter, LPCWSTR name);
@@ -552,74 +567,85 @@ bool VideoPlayer::createVideoRenderer()
     return SUCCEEDED(hr);
 }
 
-bool VideoPlayer::renderStreams(IBaseFilter *pSource)
+bool VideoPlayer::renderStreams(RenderStreamsParams * params)
+{
+    if (FAILED(params->hr))
+    {
+        return false;
+    }
+
+    params->hr = createVideoRenderer();
+
+    if (FAILED(params->hr))
+    {
+        return false;
+    }
+
+
+    params->hr = addFilterByCLSID(graphBuilder, CLSID_DSoundRender, &params->audioRenderer, L"Audio Renderer");
+
+    if (FAILED(params->hr))
+    {
+        return false;
+    }
+
+    params->hr = params->source->EnumPins(&params->pins);      // Enumerate the pins on the source filter.
+
+    if (FAILED(params->hr))
+    {
+        return false;
+    }
+
+
+    IPin * pin { nullptr };
+
+    while (S_OK == params->pins->Next(1, &pin, nullptr))
+    {
+        auto rendered = params->filterGraph2->RenderEx(pin, AM_RENDEREX_RENDERTOEXISTINGRENDERERS, nullptr);
+       
+        if (SUCCEEDED(rendered))
+        {
+            params->renderedAnyPin = TRUE;
+        }
+
+        pin->Release();
+    }
+
+    params->hr = videoRenderer->finalizeGraph(graphBuilder);
+
+    if (FAILED(params->hr)) 
+    {
+        return false;
+    }
+
+    bool removed;
+    params->hr = removeUnconnectedRenderer(graphBuilder, params->audioRenderer, &removed);
+    return SUCCEEDED(params->hr);
+}
+
+bool VideoPlayer::renderStreams(IBaseFilter * source)
 {
     IFilterGraph2 * filterGraph2 { nullptr };
     IBaseFilter * audioRenderer { nullptr };
     IEnumPins * enumPins { nullptr };
+  
     auto renderedAnyPin { false };
+    auto hr { graphBuilder->QueryInterface(IID_PPV_ARGS(&filterGraph2)) };
 
-    auto hr = graphBuilder->QueryInterface(IID_PPV_ARGS(&filterGraph2));
+    auto cleanup = [&]() {
+        safeRelease(&enumPins);
+        safeRelease(&audioRenderer);
+        safeRelease(&filterGraph2);
+    };
 
-    if (FAILED(hr))
-    {
-        goto done;
-    }
+    auto task = [&]() {
+        RenderStreamsParams params = {
+            filterGraph2, audioRenderer, source, 
+            enumPins, hr, renderedAnyPin
+        };
 
-    hr = createVideoRenderer();
+        return renderStreams(&params);
+    };
 
-    if (FAILED(hr))
-    {
-        goto done;
-    }
-
-    hr = addFilterByCLSID(graphBuilder, CLSID_DSoundRender, &audioRenderer, L"Audio Renderer");
-
-    if (FAILED(hr))
-    {
-        goto done;
-    }
-
-    hr = pSource->EnumPins(&enumPins);      // Enumerate the pins on the source filter.
-
-    if (FAILED(hr))
-    {
-        goto done;
-    }
-
-    IPin * pPin = nullptr;
-
-    while (S_OK == enumPins->Next(1, &pPin, nullptr))
-    {
-        auto hr2 = filterGraph2->RenderEx(pPin, AM_RENDEREX_RENDERTOEXISTINGRENDERERS, nullptr);
-        pPin->Release();
-        if (SUCCEEDED(hr2))
-        {
-            renderedAnyPin = TRUE;
-        }
-    }
-
-    hr = videoRenderer->finalizeGraph(graphBuilder);
-
-    if (FAILED(hr))
-    {
-        goto done;
-    }
-
-    bool removed;
-    hr = removeUnconnectedRenderer(graphBuilder, audioRenderer, &removed);
-done:
-    safeRelease(&enumPins);
-    safeRelease(&audioRenderer);
-    safeRelease(&filterGraph2);
-
-    if (SUCCEEDED(hr)) 
-    {
-        if (!renderedAnyPin) 
-        {
-            hr = -1;  //hr = VFW_E_CANNOT_RENDER;
-        }
-    }
-
-    return SUCCEEDED(hr);
+    return async(task, cleanup);
 }

@@ -21,6 +21,15 @@ namespace wpl {
         unsigned int minorVersion;
     };
 
+    struct RenderStreamsParams {
+        IFilterGraph2 * filterGraph2;
+        IBaseFilter * audioRenderer;
+        IBaseFilter * source; 
+        IEnumPins * pins;
+        HRESULT& hr;
+        bool& renderedAnyPin;
+    };
+
     enum class PlaybackState { NoVideo, Playing, Paused, Stopped };
 
     class VideoRenderer 
@@ -76,7 +85,10 @@ namespace wpl {
     private:
         bool setupGraph();
         bool createVideoRenderer();
-        bool renderStreams(IBaseFilter *pSource);
+
+
+        bool renderStreams(RenderStreamsParams * params);
+        bool renderStreams(IBaseFilter * source);
 
         void releaseGraph();
     };
