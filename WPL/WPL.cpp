@@ -51,22 +51,27 @@ bool async(bool_lambda start, void_lambda onfail = EmptyFunction, void_lambda cl
     return successful;
 }
 
+bool async_reverse(void_lambda cleanup, void_lambda onfail, bool_lambda start)
+{
+    return async(start, onfail, cleanup);
+}
+
 bool removeUnconnectedRenderer(IGraphBuilder * graphBuilder, IBaseFilter * baseFilter, bool * removed)
 {
     IPin * pinPointer { nullptr };
     auto result { findConnectedPin(baseFilter, PINDIR_INPUT, &pinPointer) };
-    safeRelease(&pinPointer);
     
     if (FAILED(result)) 
     {
         result = SUCCEEDED(graphBuilder->RemoveFilter(baseFilter));
-        (*removed) = true;
+        *removed = true;
     }
     else
     {
-        (*removed) = false;
+        *removed = false;
     }
 
+    safeRelease(&pinPointer);
     return result;
 }
 
@@ -104,48 +109,48 @@ bool isPinDirection(IPin * pinPointer, PIN_DIRECTION dir, BOOL * result)
 
 bool findConnectedPin(IBaseFilter * filter, PIN_DIRECTION PinDir, IPin **ppPin)
 {
-    *ppPin = nullptr;
-    IEnumPins * pEnum = nullptr;
-    IPin * pPin = nullptr;
+    IEnumPins * enumPins {nullptr};
+    IPin * pinPtr {nullptr};
 
-    auto  hr = filter->EnumPins(&pEnum);
+    auto bFound{ FALSE };
+    auto hr { filter->EnumPins(&enumPins) };
+
+    *ppPin = nullptr;
 
     if (FAILED(hr))
     {
         return SUCCEEDED(hr);
     }
 
-    auto bFound = FALSE;
-
-    while (S_OK == pEnum->Next(1, &pPin, nullptr))
+    while (S_OK == enumPins->Next(1, &pinPtr, nullptr))
     {
         bool isConnected;
-        hr = isPinConnected(pPin, &isConnected);
+        hr = isPinConnected(pinPtr, &isConnected);
 
         if (SUCCEEDED(hr)) 
         {
             if (isConnected) 
             {
-                hr = isPinDirection(pPin, PinDir, &bFound);
+                hr = isPinDirection(pinPtr, PinDir, &bFound);
             }
         }
 
         if (FAILED(hr)) 
         {
-            pPin->Release();
+            pinPtr->Release();
             break;
         }
 
         if (bFound) 
         {
-            *ppPin = pPin;
+            *ppPin = pinPtr;
             break;
         }
 
-        pPin->Release();
+        pinPtr->Release();
     }
 
-    pEnum->Release();
+    enumPins->Release();
 
     if (!bFound) 
     {
@@ -155,90 +160,72 @@ bool findConnectedPin(IBaseFilter * filter, PIN_DIRECTION PinDir, IPin **ppPin)
     return SUCCEEDED(hr);
 }
 
-bool addFilterByCLSID(IGraphBuilder *pGraph, REFGUID clsid, IBaseFilter **ppF, LPCWSTR wszName)
+bool addFilterByCLSID(IGraphBuilder *pGraph, REFGUID clsid, IBaseFilter ** baseFilter, LPCWSTR wszName)
 {
-    *ppF = nullptr;
+    *baseFilter = nullptr;
+    IBaseFilter * filter {nullptr};
+    auto hr { CoCreateInstance(clsid, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&filter)) };
 
-    IBaseFilter * pFilter = nullptr;
+    const auto task = [&]() {
+        if (FAILED(hr))
+            return false;
 
-    auto hr = CoCreateInstance(clsid, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pFilter));
-    
-    if (FAILED(hr))
-    {
-        goto done;
-    }
+        hr = pGraph->AddFilter(filter, wszName);
 
-    hr = pGraph->AddFilter(pFilter, wszName);
-    
-    if (FAILED(hr))
-    {
-        goto done;
-    }
+        if (FAILED(hr))
+            return false;
 
-    *ppF = pFilter;
-    (*ppF)->AddRef();
+        *baseFilter = filter;
+        (*baseFilter)->AddRef();
+        return true;
+    };
 
-done:
-    safeRelease(&pFilter);
-    return SUCCEEDED(hr);
+    return async(task, EmptyFunction, [&]() { safeRelease(&filter); });
 }
 
-bool removeUnconnectedRenderer(IGraphBuilder *pGraph, IBaseFilter *pRenderer)
+bool removeUnconnectedRenderer(IGraphBuilder * graph, IBaseFilter * renderer)
 {
-    IPin * pinPointer = nullptr;
-
-    HRESULT hr = findConnectedPin(pRenderer, PINDIR_INPUT, &pinPointer);
-
+    IPin * pinPointer {nullptr};
+    auto hr { findConnectedPin(renderer, PINDIR_INPUT, &pinPointer) };
     pinPointer->Release();
-
-    if (FAILED(hr))
-    {
-        hr = pGraph->RemoveFilter(pRenderer);
-    }
-
-    return SUCCEEDED(hr);
+    return SUCCEEDED(!hr ? graph->RemoveFilter(renderer): hr);
 }
 
-bool initialiseEvr(IBaseFilter *pEVR, HWND hwnd, IMFVideoDisplayControl** ppDisplayControl)
+bool initialiseEvr(IBaseFilter * baseFilter, HWND hwnd, IMFVideoDisplayControl** displayControl)
 {
-    IMFGetService *pGS = nullptr;
-    IMFVideoDisplayControl *pDisplay = nullptr;
+    IMFVideoDisplayControl *display{ nullptr };
+    IMFGetService *getService {nullptr };
 
-    auto hr = pEVR->QueryInterface(IID_PPV_ARGS(&pGS));
+    auto hr = baseFilter->QueryInterface(IID_PPV_ARGS(&getService));
 
-    if (FAILED(hr))
-    {
-        goto done;
-    }
+    const auto cleanup = [&]() {
+        safeRelease(&getService);
+        safeRelease(&display);
+    };
 
-    hr = pGS->GetService(MR_VIDEO_RENDER_SERVICE, IID_PPV_ARGS(&pDisplay));
+    return async_reverse(cleanup, EmptyFunction, [&]() {
+        if (FAILED(hr))
+            return false;
 
-    if (FAILED(hr))
-    {
-        goto done;
-    }
+        hr = getService->GetService(MR_VIDEO_RENDER_SERVICE, IID_PPV_ARGS(&display));
 
-    hr = pDisplay->SetVideoWindow(hwnd);
+        if (FAILED(hr))
+            return false;
 
-    if (FAILED(hr))
-    {
-        goto done;
-    }
+        hr = display->SetVideoWindow(hwnd);
 
-    hr = pDisplay->SetAspectRatioMode(MFVideoARMode_None);
+        if (FAILED(hr))
+            return false;
 
-    if (FAILED(hr))
-    {
-        goto done;
-    }
+        hr = display->SetAspectRatioMode(MFVideoARMode_None);
 
-    *ppDisplayControl = pDisplay;
-    (*ppDisplayControl)->AddRef();
+        if (FAILED(hr))
+            return false;
 
-done:
-    safeRelease(&pGS);
-    safeRelease(&pDisplay);
-    return SUCCEEDED(hr);
+        *displayControl = display;
+        (*displayControl)->AddRef();
+        return true;
+    });
 }
 
 using namespace wpl;
