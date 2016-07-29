@@ -3,10 +3,17 @@
 #include <fstream>
 #include "WPL.h"
 
-using namespace wpl;
+using bool_lambda = std::function<bool()>;
+using void_lambda = std::function<void()>;
 
-#define MAJOR_VERSION 2
-#define MINOR_VERSION 1
+const auto EmptyFunction {void_lambda([](){})};
+const auto MajorVersion {2};
+const auto MinorVersion {2};
+
+bool removeUnconnectedRenderer(IGraphBuilder *, IBaseFilter *);
+bool addFilterByCLSID(IGraphBuilder *, REFGUID, IBaseFilter **, LPCWSTR);
+bool findConnectedPin(IBaseFilter *, PIN_DIRECTION, IPin **);
+bool initialiseEvr(IBaseFilter *, HWND, IMFVideoDisplayControl **);
 
 template<typename T> 
 void safeRelease(T ** comPtr) 
@@ -34,22 +41,15 @@ bool fileExists(T filename)
     return std::ifstream(filename).good();
 }
 
-bool async(std::function<bool()> start, std::function<void()> onfail)
+bool async(bool_lambda start, void_lambda onfail = EmptyFunction, void_lambda cleanup = EmptyFunction)
 {
-    auto successful = start();
+    auto successful {start()};
 
-    if (successful == false)
-    {
-        onfail();
-    }
-
+    if(!successful) onfail();
+    if(cleanup) cleanup();
+   
     return successful;
 }
-
-bool addFilterByCLSID(IGraphBuilder * graph, REFGUID clsid, IBaseFilter ** filter, LPCWSTR name);
-bool initialiseEvr(IBaseFilter * evr, HWND hwnd, IMFVideoDisplayControl ** displayControl);
-bool findConnectedPin(IBaseFilter * filter, PIN_DIRECTION direction, IPin ** pin);
-bool removeUnconnectedRenderer(IGraphBuilder * graph, IBaseFilter * renderer);
 
 bool removeUnconnectedRenderer(IGraphBuilder * graphBuilder, IBaseFilter * baseFilter, bool * removed)
 {
@@ -241,13 +241,7 @@ done:
     return SUCCEEDED(hr);
 }
 
-Version getVersion()
-{
-    Version v;
-    v.majorVersion = MAJOR_VERSION;
-    v.minorVersion = MINOR_VERSION;
-    return v;
-}
+using namespace wpl;
 
 EVR::EVR() 
     : videoDisplay(nullptr), evr(nullptr)
@@ -262,42 +256,41 @@ EVR::~EVR()
 
 bool EVR::hasVideo() const
 {
-    return (videoDisplay != nullptr);
+    return videoDisplay != nullptr;
 }
 
-bool EVR::addToGraph(IGraphBuilder *pGraph, HWND hwnd)
+bool EVR::addToGraph(IGraphBuilder * graph, HWND hwnd)
 {
-    IBaseFilter *pEVR = nullptr;
+    IBaseFilter *evrFilter { nullptr };
+    auto hr { addFilterByCLSID(graph, CLSID_EnhancedVideoRenderer, &evrFilter, L"EVR") };
+  
+    const auto task = [&]() {
+        if (FAILED(hr))
+            return false;
 
-    auto hr = addFilterByCLSID(pGraph, CLSID_EnhancedVideoRenderer, &pEVR, L"EVR");
+        initialiseEvr(evrFilter, hwnd, &videoDisplay);
 
-    if (FAILED(hr))
-    {
-        goto done;
-    }
+        if (FAILED(hr))
+            return false;
 
-    initialiseEvr(pEVR, hwnd, &videoDisplay);
+        this->evr = evrFilter;
+        this->evr->AddRef();
 
-    if (FAILED(hr))
-        goto done;
+        return true;
+    };
 
-    evr = pEVR;
-    evr->AddRef();
-
-done:
-    safeRelease(&pEVR);
-    return(SUCCEEDED(hr));
+    return async(task, [&](){ safeRelease(&evrFilter); });
 }
 
-bool EVR::finalizeGraph(IGraphBuilder *pGraph)
+bool EVR::finalizeGraph(IGraphBuilder * graph)
 {
     if (evr == nullptr) 
     {
         return true;
     }
 
-    bool removed;
-    auto hr = removeUnconnectedRenderer(pGraph, evr, &removed);
+    auto removed { false };
+    auto hr { removeUnconnectedRenderer(graph, evr, &removed) };
 
     if (removed) 
     {
@@ -331,18 +324,19 @@ bool EVR::repaint()
 }
 
 VideoPlayer::VideoPlayer(HWND hwnd)
-  : state(PlaybackState::NoVideo),
-    windowHandle(hwnd),
-    graphBuilder(nullptr),
+  : graphBuilder(nullptr),
     mediaControl(nullptr),
     mediaEvents(nullptr),
     mediaSeeking(nullptr),
-    videoRenderer(nullptr)
+    videoRenderer(new EVR()),
+    state(PlaybackState::NoVideo),
+    windowHandle(hwnd)
 {
 }
 
 VideoPlayer::~VideoPlayer()
 {
+    safeDelete(&videoRenderer);
     releaseGraph();
 }
 
@@ -353,38 +347,16 @@ bool VideoPlayer::openVideo(const std::string& filename)
         return false;
     }
 
-    IBaseFilter *pSource = nullptr;
+    IBaseFilter* source {nullptr};
+    auto hr { setupGraph() };
 
-    auto hr = setupGraph();
+    const auto tasks = [&]() {
+        const auto wstr { std::wstring(filename.begin(), filename.end()) };
+        hr = SUCCEEDED(graphBuilder->AddSourceFilter(wstr.c_str(), nullptr, &source));
+        return !hr ? false : renderStreams(source);
+    };
 
-    if (!hr)
-    {
-        return false;
-    }
-
-    auto nameLength = filename.length() + 1;
-    auto widthLength = MultiByteToWideChar(CP_ACP, 0, filename.c_str(), nameLength, nullptr, 0);
-    auto wideBuffer = new wchar_t[widthLength];
-
-    MultiByteToWideChar(CP_ACP, 0, filename.c_str(), nameLength, wideBuffer, widthLength);
-
-    hr = SUCCEEDED(graphBuilder->AddSourceFilter(wideBuffer, nullptr, &pSource));
-
-    if (!hr)
-    {
-        goto done;
-    }
-
-    hr = renderStreams(pSource);
-done:
-    if (!hr)
-    {
-        releaseGraph();
-    }
-
-    safeRelease(&pSource);
-    delete[] wideBuffer;
-    return hr;
+    return async(tasks, [&]() { releaseGraph(); }, [&]() { safeRelease(&source); });
 }
 
 bool VideoPlayer::play()
@@ -413,7 +385,7 @@ bool VideoPlayer::pause()
         return false;
     }
 
-    auto hr = mediaControl->Pause();
+    auto hr { mediaControl->Pause() };
     
     if (SUCCEEDED(hr)) 
     {
@@ -430,17 +402,17 @@ bool VideoPlayer::stop()
         return false;
     }
 
-    auto hr = mediaControl->Stop();
+    auto hr { mediaControl->Stop() };
 
     if (SUCCEEDED(hr))
     {
         state = PlaybackState::Stopped;
         
-        LONGLONG StopTimes = 1;
-        LONGLONG Start = 1;
+        auto stopTimes = 1LL;
+        auto start = 1LL;
 
-        mediaSeeking->GetPositions(nullptr, &StopTimes);
-        mediaSeeking->SetPositions(&Start, 0x01 | 0x04, &StopTimes, 0x01 | 0x04);
+        mediaSeeking->GetPositions(nullptr, &stopTimes);
+        mediaSeeking->SetPositions(&start, 0x01 | 0x04, &stopTimes, 0x01 | 0x04);
     }
     
     return state == PlaybackState::Stopped;
@@ -453,15 +425,16 @@ bool VideoPlayer::hasVideo() const
 
 bool VideoPlayer::hasFinished() const
 {
-    auto returnValue = false;
+    auto returnValue {false};
 
     if(mediaEvents == nullptr) 
     {
         return returnValue;
     }
 
-    long param1 = 0, param2 = 0;
-    long evCode = 0;
+    auto param1 {0L};
+    auto param2 {0L};
+    auto evCode {0L};
 
     while (SUCCEEDED(mediaEvents->GetEvent(&evCode, &param1, &param2, 0)))
     {
@@ -485,7 +458,7 @@ bool VideoPlayer::hasFinished() const
 bool VideoPlayer::updateVideoWindow() const
 {
     RECT rc;
-    GetClientRect(this->windowHandle, &rc);
+    GetClientRect(windowHandle, &rc);
     return SUCCEEDED(videoRenderer ? videoRenderer->updateVideoWindow(windowHandle, &rc) : S_OK);
 }
 
@@ -494,51 +467,42 @@ bool VideoPlayer::repaint() const
     return SUCCEEDED(videoRenderer ? videoRenderer->repaint() : S_OK);
 }
 
+HRESULT VideoPlayer::queryInterface(HRESULT prevResult, const IID& riid, void ** pvObject) const
+{
+    return SUCCEEDED(prevResult) ? graphBuilder->QueryInterface(riid, pvObject) : E_FAIL;
+}
+
 bool VideoPlayer::setupGraph()
 {
     releaseGraph();
 
-    auto hr = CoCreateInstance(CLSID_FilterGraph, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&graphBuilder));
+    auto hr { CoCreateInstance(CLSID_FilterGraph, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&graphBuilder)) };
 
     if (FAILED(hr))
     {
-        goto done;
+        return SUCCEEDED(hr);
     }
 
-    hr = graphBuilder->QueryInterface(IID_PPV_ARGS(&mediaControl));
-
-    if (FAILED(hr))
+    hr = queryInterface(hr, IID_PPV_ARGS(&mediaControl));
+    hr = queryInterface(hr, IID_PPV_ARGS(&mediaEvents));
+    hr = queryInterface(hr, IID_PPV_ARGS(&mediaSeeking));
+    
+    if (SUCCEEDED(hr))
     {
-        goto done;
+        state = PlaybackState::Stopped;
     }
 
-    hr = graphBuilder->QueryInterface(IID_PPV_ARGS(&mediaEvents));
-
-    if (FAILED(hr))
-    {
-        goto done;
-    }
-
-    hr = graphBuilder->QueryInterface(IID_PPV_ARGS(&mediaSeeking));
-
-    if (FAILED(hr))
-    {
-        goto done;
-    }
-
-    state = PlaybackState::Stopped;
-done:
     return SUCCEEDED(hr);
 }
 
 void VideoPlayer::releaseGraph()
 {
+    state = PlaybackState::NoVideo;
+
     safeRelease(&graphBuilder);
     safeRelease(&mediaControl);
+    safeRelease(&mediaSeeking);
     safeRelease(&mediaEvents);
-    safeDelete(&videoRenderer);
-
-    state = PlaybackState::NoVideo;
 }
 
 PlaybackState VideoPlayer::playbackState() const 
@@ -546,9 +510,8 @@ PlaybackState VideoPlayer::playbackState() const
     return state;
 }
 
-bool VideoPlayer::createVideoRenderer()
+bool VideoPlayer::createVideoRenderer() const
 {
-    videoRenderer = new EVR();
     auto hr { E_FAIL };
 
     if (videoRenderer == nullptr) 
@@ -557,17 +520,10 @@ bool VideoPlayer::createVideoRenderer()
         return false;
     }
 
-    hr = videoRenderer->addToGraph(graphBuilder, windowHandle);
-    
-    if (FAILED(hr)) 
-    {
-        safeDelete(&videoRenderer);
-    }
-
-    return SUCCEEDED(hr);
+    return SUCCEEDED(videoRenderer->addToGraph(graphBuilder, windowHandle));
 }
 
-bool VideoPlayer::renderStreams(RenderStreamsParams * params)
+bool VideoPlayer::renderStreams(RenderStreamsParams * params) const
 {
     if (FAILED(params->hr))
     {
@@ -581,7 +537,6 @@ bool VideoPlayer::renderStreams(RenderStreamsParams * params)
         return false;
     }
 
-
     params->hr = addFilterByCLSID(graphBuilder, CLSID_DSoundRender, &params->audioRenderer, L"Audio Renderer");
 
     if (FAILED(params->hr))
@@ -589,13 +544,12 @@ bool VideoPlayer::renderStreams(RenderStreamsParams * params)
         return false;
     }
 
-    params->hr = params->source->EnumPins(&params->pins);      // Enumerate the pins on the source filter.
+    params->hr = params->source->EnumPins(&params->pins);   
 
     if (FAILED(params->hr))
     {
         return false;
     }
-
 
     IPin * pin { nullptr };
 
@@ -648,4 +602,12 @@ bool VideoPlayer::renderStreams(IBaseFilter * source)
     };
 
     return async(task, cleanup);
+}
+
+Version getVersion()
+{
+    Version v;
+    v.majorVersion = MajorVersion;
+    v.minorVersion = MinorVersion;
+    return v;
 }

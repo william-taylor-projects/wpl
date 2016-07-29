@@ -58,7 +58,6 @@ namespace wpl {
         bool repaint() override;
     };
 
-
     class WPL_API VideoPlayer {
         IGraphBuilder * graphBuilder;
         IMediaControl * mediaControl;
@@ -82,12 +81,13 @@ namespace wpl {
 
         bool hasFinished() const;
         bool hasVideo() const;
-    private:
+    private:    
         bool setupGraph();
-        bool createVideoRenderer();
+        bool createVideoRenderer() const;
 
+        HRESULT queryInterface(HRESULT prevResult, const IID& riid, void ** pvObject) const;
 
-        bool renderStreams(RenderStreamsParams * params);
+        bool renderStreams(RenderStreamsParams * params) const;
         bool renderStreams(IBaseFilter * source);
 
         void releaseGraph();
