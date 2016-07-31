@@ -10,11 +10,6 @@ const auto EmptyFunction {void_lambda([](){})};
 const auto MajorVersion {2};
 const auto MinorVersion {2};
 
-bool removeUnconnectedRenderer(IGraphBuilder *, IBaseFilter *);
-bool addFilterByCLSID(IGraphBuilder *, REFGUID, IBaseFilter **, LPCWSTR);
-bool findConnectedPin(IBaseFilter *, PIN_DIRECTION, IPin **);
-bool initialiseEvr(IBaseFilter *, HWND, IMFVideoDisplayControl **);
-
 template<typename T> 
 void safeRelease(T ** comPtr) 
 {
@@ -56,25 +51,6 @@ bool async_reverse(void_lambda cleanup, void_lambda onfail, bool_lambda start)
     return async(start, onfail, cleanup);
 }
 
-bool removeUnconnectedRenderer(IGraphBuilder * graphBuilder, IBaseFilter * baseFilter, bool * removed)
-{
-    IPin * pinPointer { nullptr };
-    auto result { findConnectedPin(baseFilter, PINDIR_INPUT, &pinPointer) };
-    
-    if (FAILED(result)) 
-    {
-        result = SUCCEEDED(graphBuilder->RemoveFilter(baseFilter));
-        *removed = true;
-    }
-    else
-    {
-        *removed = false;
-    }
-
-    safeRelease(&pinPointer);
-    return result;
-}
-
 bool isPinConnected(IPin * pinPointer, bool * resultPointer)
 {
     IPin * tempPinPointer { nullptr };
@@ -109,8 +85,8 @@ bool isPinDirection(IPin * pinPointer, PIN_DIRECTION dir, BOOL * result)
 
 bool findConnectedPin(IBaseFilter * filter, PIN_DIRECTION PinDir, IPin **ppPin)
 {
-    IEnumPins * enumPins {nullptr};
-    IPin * pinPtr {nullptr};
+    IEnumPins * enumPins { nullptr };
+    IPin * pinPtr { nullptr };
 
     auto bFound{ FALSE };
     auto hr { filter->EnumPins(&enumPins) };
@@ -158,6 +134,25 @@ bool findConnectedPin(IBaseFilter * filter, PIN_DIRECTION PinDir, IPin **ppPin)
     }
 
     return SUCCEEDED(hr);
+}
+
+bool removeUnconnectedRenderer(IGraphBuilder * graphBuilder, IBaseFilter * baseFilter, bool * removed)
+{
+    IPin * pinPointer{ nullptr };
+    auto result { findConnectedPin(baseFilter, PINDIR_INPUT, &pinPointer) };
+
+    if (FAILED(result))
+    {
+        result = SUCCEEDED(graphBuilder->RemoveFilter(baseFilter));
+        *removed = true;
+    }
+    else
+    {
+        *removed = false;
+    }
+
+    safeRelease(&pinPointer);
+    return result;
 }
 
 bool addFilterByCLSID(IGraphBuilder *pGraph, REFGUID clsid, IBaseFilter ** baseFilter, LPCWSTR wszName)
@@ -269,7 +264,7 @@ bool EVR::addToGraph(IGraphBuilder * graph, HWND hwnd)
     return async(task, [&](){ safeRelease(&evrFilter); });
 }
 
-bool EVR::finalizeGraph(IGraphBuilder * graph)
+bool EVR::finaliseGraph(IGraphBuilder * graph)
 {
     if (evr == nullptr) 
     {
@@ -552,7 +547,7 @@ bool VideoPlayer::renderStreams(RenderStreamsParams * params) const
         pin->Release();
     }
 
-    params->hr = videoRenderer->finalizeGraph(graphBuilder);
+    params->hr = videoRenderer->finaliseGraph(graphBuilder);
 
     if (FAILED(params->hr)) 
     {
@@ -593,8 +588,5 @@ bool VideoPlayer::renderStreams(IBaseFilter * source)
 
 Version getVersion()
 {
-    Version v;
-    v.majorVersion = MajorVersion;
-    v.minorVersion = MinorVersion;
-    return v;
+    return { MajorVersion , MinorVersion };
 }

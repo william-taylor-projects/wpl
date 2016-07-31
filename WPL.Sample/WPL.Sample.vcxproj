@@ -102,7 +102,8 @@
       <Command>xcopy /Y "$(SolutionDir)WPL.Sample\demo.wmv" "$(OutDir)"</Command>
     </PreLinkEvent>
     <PostBuildEvent>
-      <Command>xcopy /Y "$(SolutionDir)WPL.Sample\demo.wmv" "$(OutDir)"</Command>
+      <Command>xcopy /Y "$(SolutionDir)WPL.Sample\demo.wmv" "$(OutDir)"
+xcopy /Y "$(SolutionDir)WPL.Sample\SDL2.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -134,6 +135,10 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /Y "$(SolutionDir)WPL.Sample\demo.wmv" "$(OutDir)"
+xcopy /Y "$(SolutionDir)WPL.Sample\SDL2.dll" "$(OutDir)"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>

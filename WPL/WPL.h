@@ -8,7 +8,7 @@
         #define WPL_API __declspec(dllimport)
     #endif
 
-#include <windows.h>
+#include <Windows.h>
 #include <dshow.h>
 #include <string>
 #include <Evr.h>
@@ -21,15 +21,6 @@ namespace wpl {
         unsigned int minorVersion;
     };
 
-    struct RenderStreamsParams {
-        IFilterGraph2 * filterGraph2;
-        IBaseFilter * audioRenderer;
-        IBaseFilter * source; 
-        IEnumPins * pins;
-        HRESULT& hr;
-        bool& renderedAnyPin;
-    };
-
     enum class PlaybackState { NoVideo, Playing, Paused, Stopped };
 
     class VideoRenderer 
@@ -37,7 +28,7 @@ namespace wpl {
     public:
         virtual ~VideoRenderer() {};
         virtual bool addToGraph(IGraphBuilder * graph, HWND hwnd) = 0;
-        virtual bool finalizeGraph(IGraphBuilder * graph) = 0;
+        virtual bool finaliseGraph(IGraphBuilder * graph) = 0;
         virtual bool updateVideoWindow(HWND hwnd, const LPRECT prc) = 0;
         virtual bool hasVideo() const = 0;
         virtual bool repaint() = 0;
@@ -52,7 +43,7 @@ namespace wpl {
         ~EVR();
 
         bool addToGraph(IGraphBuilder * graph, HWND hwnd) override;
-        bool finalizeGraph(IGraphBuilder * graph) override;
+        bool finaliseGraph(IGraphBuilder * graph) override;
         bool updateVideoWindow(HWND hwnd, const LPRECT prc) override;
         bool hasVideo() const override;
         bool repaint() override;
@@ -82,6 +73,15 @@ namespace wpl {
         bool hasFinished() const;
         bool hasVideo() const;
     private:    
+        struct RenderStreamsParams {
+            IFilterGraph2 * filterGraph2;
+            IBaseFilter * audioRenderer;
+            IBaseFilter * source;
+            IEnumPins * pins;
+            HRESULT& hr;
+            bool& renderedAnyPin;
+        };
+
         bool setupGraph();
         bool createVideoRenderer() const;
 
@@ -92,6 +92,8 @@ namespace wpl {
 
         void releaseGraph();
     };
+
+    WPL_API Version getVersion();
 }
 
 #endif

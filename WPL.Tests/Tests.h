@@ -23,3 +23,10 @@ void setTimeout(int milliseconds, std::function<void()> func)
         func();
     });
 };
+
+const auto timeout = [](Uint32 interval, void * ptr) -> Uint32 {
+    SDL_Event e;
+    e.type = SDL_QUIT;
+    SDL_PushEvent(&e);
+    return 0;
+};

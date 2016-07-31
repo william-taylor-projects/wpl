@@ -4,13 +4,6 @@
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
-auto timeout = [](Uint32 interval, void * ptr) -> Uint32 {
-    SDL_Event e;
-    e.type = SDL_QUIT;
-    SDL_PushEvent(&e);
-    return 0;
-};
-
 namespace WPLTests
 {
     TEST_CLASS(StateTests)
