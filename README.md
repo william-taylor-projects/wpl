@@ -1,8 +1,11 @@
+![alt tag](http://williamsamtaylor.co.uk/github-images/wpl-animation.gif)
+
+<img align='right' width='150' height='150' src='https://image.flaticon.com/icons/svg/148/148744.svg/>
+
+
 # Windows Playback Library
 
 WPL is a C++ library to playback video files inside a normal Window on the Win32 operating system.
-
-![alt tag](http://williamsamtaylor.co.uk/github-images/wpl-animation.gif)
 
 ## Overview
 
