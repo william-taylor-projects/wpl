@@ -9,10 +9,6 @@ I built it as having an intro video in many of my OpenGL projects was something 
 DirectShow and handles the painting of the window for the user. It has been used in my projects successfully and I have put it here
 if others are curious.
 
-## Overview
-
-The library is a simple wrapper on top of DirectShow and replaces a lot of boiler plate code with just a few simple classes.
-
 ## Example
 
 ```c++
