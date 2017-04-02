@@ -1,13 +1,10 @@
 ![alt tag](http://williamsamtaylor.co.uk/github-images/wpl-animation.gif)
 
-<img align='right' width='150' height='150' src='https://image.flaticon.com/icons/svg/148/148744.svg' />
+<img align='right' width='150' height='150' src='https://image.flaticon.com/icons/svg/332/332433.svg' />
 
 # Windows Playback Library
 
-WPL or Windows Playback Library is a small C++ library to play video files inside a normal Window on the Win32 operating system.
-I built it as having an intro video in many of my OpenGL projects was something I really wanted to have. The library just wraps
-DirectShow and handles the painting of the window for the user. It has been used in my projects successfully and I have put it here
-if others are curious.
+WPL or Windows Playback Library is a small C++ library to play video files inside a normal window on the Win32 operating system. I built it as having an intro video in many of my OpenGL projects was something I really wanted to have. The library just wraps DirectShow and handles the painting of the window for the user. It has been used in my projects successfully and I have put it here if others are curious. 
 
 ## Example
 
@@ -51,7 +48,7 @@ Once you have done that you can run the example or build the library yourself fr
 
 * Adjust the playback speed.
 * Disable and control audio.
-* Set drawing region.
+* Set drawing region for window.
 
 ## Links
 
