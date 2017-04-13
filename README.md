@@ -4,9 +4,7 @@
 
 # Video Library &nbsp; &nbsp; &nbsp; [![Build status](https://ci.appveyor.com/api/projects/status/o8afonef8k6qrs0k?svg=true)](https://ci.appveyor.com/project/william-taylor/wpl) [![Open Source Love](https://badges.frapsoft.com/os/v1/open-source.svg?v=102)](https://github.com/ellerbrock/open-source-badge/) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-WPL or Windows Playback Library is a small C++ library to play video files inside a normal window on the Win32 operating system. I built it as having an intro video in many of my OpenGL projects was something I really wanted to have. The library just wraps DirectShow and handles the painting of the window for the user. It has been used in my projects successfully and I have put it here if others are curious. 
-
-## Example
+WPL or Windows Playback Library is a small C++ library to play video files inside a normal window on the Win32 operating system. I built it as having an intro video in many of my OpenGL projects was something I wanted to have. The library just wraps DirectShow and handles the painting of the window for the user. It has been used in my projects successfully and I have put it here if others are curious.
 
 ```c++
 
@@ -29,29 +27,20 @@ videoPlayer.hasVideo();
 
 ```
 
-## Installation
-
-If you would like to build the library you can download the project with a simple clone.
-
-```git clone https://github.com/william-taylor/WPL```
-
-Once you have done that you can run the example or build the library yourself from inside Visual Studio.
-
 ## Features
 
-* Load Avi/Wmv Video Files
+* Load AVI/WMV Video Files
 * DirectX based drawing
-* The ability to Pause, Stop and Resume Videos.
+* The ability to pause, stop and resume Videos.
 * Tell when a video has finished.
 
-## Roadmap
+## Development
 
 * Adjust the playback speed.
 * Disable and control audio.
 * Set drawing region for window.
+* Port project to CMake
 
-## Links
+## License
 
-Find below some quick links to the technology used to build the application.
-
-[DirectShow](https://msdn.microsoft.com/en-us/library/windows/desktop/dd390351(v=vs.85).aspx)
+Apache 2.0
